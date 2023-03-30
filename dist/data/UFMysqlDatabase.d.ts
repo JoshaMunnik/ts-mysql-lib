@@ -3,7 +3,8 @@ import { UFLog } from "@ultraforce/ts-nodejs-lib/dist";
 import { UFDatabase, IUFDatabase } from "@ultraforce/ts-general-lib/dist";
 import { IUFDynamicObject } from "@ultraforce/ts-general-lib/dist";
 /**
- * {@link UFMysqlDatabase} implements {@link UFDatabase} for use with mysql using the mysql2 library.
+ * {@link UFMysqlDatabase} implements `UFDatabase` for use with mysql using the promise version of the
+ * mysql2 library. The class uses the pooling functionality to share connections.
  */
 export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
     /**
@@ -12,6 +13,12 @@ export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
      * @private
      */
     private m_connection;
+    /**
+     * The active pool
+     *
+     * @private
+     */
+    private m_pool;
     /**
      * The server
      *
@@ -41,7 +48,7 @@ export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
      *
      * @private
      */
-    private m_log;
+    private readonly m_log;
     /**
      * Constructs an instance of {@link UFMysqlDatabase}.
      *
@@ -50,7 +57,7 @@ export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
      */
     constructor(aLog: UFLog);
     /**
-     * Initializes the database and create a connection.
+     * Initializes the database.
      *
      * @param {string} aHost
      *   Server address
@@ -87,6 +94,12 @@ export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
      */
     protected field(aSql: string, aParameterValues?: IUFDynamicObject, aDefault?: any): Promise<any>;
     /**
+     * This method is called instead of init to use a connection instead of a pool.
+     *
+     * @param {Connection} aConnection
+     */
+    private useConnection;
+    /**
      * Execute a sql.
      *
      * @param {string }aDescription
@@ -101,10 +114,4 @@ export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
      * @throws error
      */
     private execute;
-    /**
-     * Tries to reconnect to the database.
-     *
-     * @throws * When connection failed.
-     */
-    private reconnect;
 }

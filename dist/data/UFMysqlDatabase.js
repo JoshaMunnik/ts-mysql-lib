@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { createConnection } from 'mysql2/promise';
+import { createPool } from 'mysql2/promise';
 import { UFDatabase } from "@ultraforce/ts-general-lib/dist";
 // endregion
 // region private constants
@@ -16,7 +16,8 @@ const LOG_PREFIX = 'DATABASE';
 // endregion
 // region class
 /**
- * {@link UFMysqlDatabase} implements {@link UFDatabase} for use with mysql using the mysql2 library.
+ * {@link UFMysqlDatabase} implements `UFDatabase` for use with mysql using the promise version of the
+ * mysql2 library. The class uses the pooling functionality to share connections.
  */
 export class UFMysqlDatabase extends UFDatabase {
     // endregion
@@ -36,6 +37,12 @@ export class UFMysqlDatabase extends UFDatabase {
          * @private
          */
         this.m_connection = null;
+        /**
+         * The active pool
+         *
+         * @private
+         */
+        this.m_pool = null;
         /**
          * The server
          *
@@ -65,7 +72,7 @@ export class UFMysqlDatabase extends UFDatabase {
     // endregion
     // region public methods
     /**
-     * Initializes the database and create a connection.
+     * Initializes the database.
      *
      * @param {string} aHost
      *   Server address
@@ -82,13 +89,16 @@ export class UFMysqlDatabase extends UFDatabase {
             this.m_database = aDatabase;
             this.m_user = anUser;
             this.m_password = aPassword;
-            this.m_connection = yield createConnection({
+            this.m_pool = createPool({
                 host: aHost,
                 database: aDatabase,
                 user: anUser,
-                password: aPassword
+                password: aPassword,
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0
             });
-            this.m_log.info(LOG_PREFIX, 'connected to database', `host:${aHost}`, `database:${aDatabase}`, `user:${anUser}`);
+            this.m_log.info(LOG_PREFIX, 'created pool', `host:${aHost}`, `database:${aDatabase}`, `user:${anUser}`);
         });
     }
     // endregion
@@ -116,19 +126,29 @@ export class UFMysqlDatabase extends UFDatabase {
      */
     transaction(aCallback) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.m_connection == null) {
+            // if connection is set, the instance is already one created with a transaction; just execute the callback
+            // (no nested transactions)
+            if (this.m_connection != null) {
+                yield aCallback(this);
+                return;
+            }
+            if (this.m_pool == null) {
                 throw new Error('There is no connection to the database.');
             }
-            yield this.m_connection.beginTransaction();
+            const connection = yield this.m_pool.getConnection();
             try {
-                yield aCallback(this);
-                yield this.m_connection.commit();
+                const database = new UFMysqlDatabase(this.m_log);
+                database.useConnection(connection);
+                yield connection.beginTransaction();
+                yield aCallback(database);
+                yield connection.commit();
             }
             catch (error) {
-                yield this.m_connection.rollback();
+                yield connection.rollback();
                 throw error;
             }
             finally {
+                connection.release();
             }
         });
     }
@@ -169,6 +189,14 @@ export class UFMysqlDatabase extends UFDatabase {
     // endregion
     // region private methods
     /**
+     * This method is called instead of init to use a connection instead of a pool.
+     *
+     * @param {Connection} aConnection
+     */
+    useConnection(aConnection) {
+        this.m_connection = aConnection;
+    }
+    /**
      * Execute a sql.
      *
      * @param {string }aDescription
@@ -184,7 +212,7 @@ export class UFMysqlDatabase extends UFDatabase {
      */
     execute(aDescription, aSql, aParameterValues) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.m_connection == null) {
+            if ((this.m_connection == null) && (this.m_pool == null)) {
                 throw new Error('There is no connection to the database.');
             }
             // convert sql to mysql using ? and array of values
@@ -197,52 +225,14 @@ export class UFMysqlDatabase extends UFDatabase {
                 : aSql;
             // try to execute sql
             try {
-                const [result, fields] = yield this.m_connection.execute(sql, values);
+                // if m_pool is null, m_connection is not null (because of the if statement at the start)
+                const [result, fields] = this.m_pool != null
+                    ? yield this.m_pool.execute(sql, values)
+                    : yield this.m_connection.execute(sql, values);
                 return result;
             }
             catch (error) {
                 this.m_log.error(LOG_PREFIX, error, error.code, aDescription, sql, values);
-            }
-            // on failure try to reconnect to the database
-            yield this.reconnect();
-            // execute query again
-            try {
-                const [result, fields] = yield this.m_connection.execute(sql, values);
-                return result;
-            }
-            catch (error) {
-                this.m_log.error(LOG_PREFIX, error, error.code, aDescription, sql, values);
-                throw error;
-            }
-        });
-    }
-    /**
-     * Tries to reconnect to the database.
-     *
-     * @throws * When connection failed.
-     */
-    reconnect() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.m_connection != null) {
-                try {
-                    yield this.m_connection.end();
-                }
-                catch (error) {
-                    this.m_log.error(LOG_PREFIX, error, error.code, 'ending connection');
-                }
-            }
-            try {
-                this.m_connection = yield createConnection({
-                    host: this.m_host,
-                    database: this.m_database,
-                    user: this.m_user,
-                    password: this.m_password
-                });
-                this.m_log.info(LOG_PREFIX, 'reconnected to database');
-            }
-            catch (error) {
-                this.m_log.error(LOG_PREFIX, error, 'reconnecting', error.code);
-                throw error;
             }
         });
     }

@@ -1,6 +1,6 @@
 // region imports
 
-import {Connection, createConnection, RowDataPacket, OkPacket} from 'mysql2/promise';
+import {Connection, RowDataPacket, OkPacket, Pool, createPool} from 'mysql2/promise';
 import {UFLog} from "@ultraforce/ts-nodejs-lib/dist";
 import {UFDatabase, IUFDatabase} from "@ultraforce/ts-general-lib/dist";
 import {IUFDynamicObject} from "@ultraforce/ts-general-lib/dist";
@@ -16,7 +16,8 @@ const LOG_PREFIX: string = 'DATABASE';
 // region class
 
 /**
- * {@link UFMysqlDatabase} implements {@link UFDatabase} for use with mysql using the mysql2 library.
+ * {@link UFMysqlDatabase} implements `UFDatabase` for use with mysql using the promise version of the
+ * mysql2 library. The class uses the pooling functionality to share connections.
  */
 export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
   // region private variables
@@ -27,6 +28,13 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
    * @private
    */
   private m_connection: (Connection | null) = null;
+
+  /**
+   * The active pool
+   *
+   * @private
+   */
+  private m_pool: (Pool | null) = null;
 
   /**
    * The server
@@ -61,7 +69,7 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
    *
    * @private
    */
-  private m_log: UFLog;
+  private readonly m_log: UFLog;
 
   // endregion
 
@@ -83,7 +91,7 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
   // region public methods
 
   /**
-   * Initializes the database and create a connection.
+   * Initializes the database.
    *
    * @param {string} aHost
    *   Server address
@@ -99,13 +107,16 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
     this.m_database = aDatabase;
     this.m_user = anUser;
     this.m_password = aPassword;
-    this.m_connection = await createConnection({
+    this.m_pool = createPool({
       host: aHost,
       database: aDatabase,
       user: anUser,
-      password: aPassword
+      password: aPassword,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
     });
-    this.m_log.info(LOG_PREFIX, 'connected to database', `host:${aHost}`, `database:${aDatabase}`, `user:${anUser}`);
+    this.m_log.info(LOG_PREFIX, 'created pool', `host:${aHost}`, `database:${aDatabase}`, `user:${anUser}`);
   }
 
   // endregion
@@ -132,17 +143,27 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
    * @inheritDoc
    */
   async transaction(aCallback: (aDatabase: IUFDatabase) => Promise<void>): Promise<void> {
-    if (this.m_connection == null) {
+    // if connection is set, the instance is already one created with a transaction; just execute the callback
+    // (no nested transactions)
+    if (this.m_connection != null) {
+      await aCallback(this);
+      return;
+    }
+    if (this.m_pool == null) {
       throw new Error('There is no connection to the database.')
     }
-    await this.m_connection.beginTransaction();
+    const connection = await this.m_pool.getConnection();
     try {
-      await aCallback(this);
-      await this.m_connection.commit();
+      const database = new UFMysqlDatabase(this.m_log);
+      database.useConnection(connection);
+      await connection.beginTransaction();
+      await aCallback(database);
+      await connection.commit();
     } catch (error) {
-      await this.m_connection.rollback();
+      await connection.rollback();
       throw error;
     } finally {
+      connection.release();
     }
   }
 
@@ -182,6 +203,15 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
   // region private methods
 
   /**
+   * This method is called instead of init to use a connection instead of a pool.
+   *
+   * @param {Connection} aConnection
+   */
+  private useConnection(aConnection: Connection) {
+    this.m_connection = aConnection;
+  }
+
+  /**
    * Execute a sql.
    *
    * @param {string }aDescription
@@ -196,7 +226,7 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
    * @throws error
    */
   private async execute(aDescription: string, aSql: string, aParameterValues?: IUFDynamicObject) {
-    if (this.m_connection == null) {
+    if ((this.m_connection == null) && (this.m_pool == null)) {
       throw new Error('There is no connection to the database.')
     }
     // convert sql to mysql using ? and array of values
@@ -213,47 +243,13 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
       : aSql;
     // try to execute sql
     try {
-      const [result, fields] = await this.m_connection.execute(sql, values);
+      // if m_pool is null, m_connection is not null (because of the if statement at the start)
+      const [result, fields] = this.m_pool != null
+        ? await this.m_pool.execute(sql, values)
+        : await this.m_connection!.execute(sql, values);
       return result;
     } catch (error: any) {
       this.m_log.error(LOG_PREFIX, error, error.code, aDescription, sql, values);
-    }
-    // on failure try to reconnect to the database
-    await this.reconnect();
-    // execute query again
-    try {
-      const [result, fields] = await this.m_connection.execute(sql, values);
-      return result;
-    } catch (error: any) {
-      this.m_log.error(LOG_PREFIX, error, error.code, aDescription, sql, values);
-      throw error;
-    }
-  }
-
-  /**
-   * Tries to reconnect to the database.
-   *
-   * @throws * When connection failed.
-   */
-  private async reconnect() {
-    if (this.m_connection != null) {
-      try {
-        await this.m_connection.end();
-      } catch (error: any) {
-        this.m_log.error(LOG_PREFIX, error, error.code, 'ending connection');
-      }
-    }
-    try {
-      this.m_connection = await createConnection({
-        host: this.m_host,
-        database: this.m_database,
-        user: this.m_user,
-        password: this.m_password
-      });
-      this.m_log.info(LOG_PREFIX, 'reconnected to database');
-    } catch (error: any) {
-      this.m_log.error(LOG_PREFIX, error, 'reconnecting', error.code);
-      throw error;
     }
   }
 
