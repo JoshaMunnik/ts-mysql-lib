@@ -1,6 +1,6 @@
 {
   "name": "@ultraforce/ts-mysql-lib",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Various utility classes for use with MySQL.",
   "scripts": {
     "build": "tsc",
@@ -21,6 +21,7 @@
     "url": "https://github.com/JoshaMunnik/ts-mysql-lib",
     "type": "git"
   },
+  "typings": "./dist/index.d.ts",
   "author": "Josha Munnik",
   "license": "MIT",
   "devDependencies": {
