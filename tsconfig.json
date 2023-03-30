@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "moduleResolution": "Node",
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "tests",
+    "dist",
+    "node_modules"
+  ],
+  "include" : [
+    "./src"
+  ]
+}

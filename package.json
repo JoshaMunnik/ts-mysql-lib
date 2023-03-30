@@ -1,0 +1,38 @@
+{
+  "name": "@ultraforce/ts-mysql-lib",
+  "version": "1.0.0",
+  "description": "Various utility classes for use with MySQL.",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "doc": "typedoc"
+  },
+  "files": [
+    "docs",
+    "dist",
+    "LICENSE.MD",
+    "README.md"
+  ],
+  "keywords": [
+    "typescript",
+    "utility"
+  ],
+  "repository": {
+    "url": "https://github.com/JoshaMunnik/ts-mysql-lib",
+    "type": "git"
+  },
+  "author": "Josha Munnik",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^28.1.6",
+    "jest": "^28.1.3",
+    "mysql2": "^3.2.0",
+    "ts-jest": "^28.0.7",
+    "typedoc": "^0.23.28",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "@ultraforce/ts-general-lib": "^1.0.4",
+    "@ultraforce/ts-nodejs-lib": "^1.0.0"
+  }
+}
