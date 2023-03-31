@@ -1,6 +1,6 @@
 {
   "name": "@ultraforce/ts-mysql-lib",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Various utility classes for use with MySQL.",
   "scripts": {
     "build": "tsc",
@@ -33,7 +33,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "@ultraforce/ts-general-lib": "^1.0.4",
-    "@ultraforce/ts-nodejs-lib": "^1.0.0"
+    "@ultraforce/ts-general-lib": ">= 1.0.8",
+    "@ultraforce/ts-nodejs-lib": ">= 1.0.0"
   }
 }
