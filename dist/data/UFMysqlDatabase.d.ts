@@ -1,12 +1,13 @@
 import { RowDataPacket } from 'mysql2/promise';
-import { UFLog } from "@ultraforce/ts-nodejs-lib/dist/log/UFLog";
-import { UFDatabase, IUFDatabase } from "@ultraforce/ts-general-lib/dist";
-import { IUFDynamicObject } from "@ultraforce/ts-general-lib/dist";
+import { IUFDatabase } from "@ultraforce/ts-general-lib/dist/data/IUFDatabase.js";
+import { UFDatabase } from "@ultraforce/ts-general-lib/dist/data/UFDatabase.js";
+import { IUFDynamicObject } from "@ultraforce/ts-general-lib/dist/types/IUFDynamicObject.js";
+import { IUFLog } from "@ultraforce/ts-nodejs-lib/dist/log/IUFLog.js";
 /**
  * {@link UFMysqlDatabase} implements `UFDatabase` for use with mysql using the promise version of the
  * mysql2 library. The class uses the pooling functionality to share connections.
  */
-export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
+declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
     /**
      * The active connection.
      *
@@ -52,10 +53,10 @@ export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
     /**
      * Constructs an instance of {@link UFMysqlDatabase}.
      *
-     * @param {UFLog} aLog
+     * @param {IUFLog} aLog
      *   Log to use
      */
-    constructor(aLog: UFLog);
+    constructor(aLog: IUFLog);
     /**
      * Initializes the database.
      *
@@ -115,3 +116,4 @@ export declare class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
      */
     private execute;
 }
+export { UFMysqlDatabase };

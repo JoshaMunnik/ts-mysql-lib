@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { createPool } from 'mysql2/promise';
-import { UFDatabase } from "@ultraforce/ts-general-lib/dist";
+import { UFDatabase } from "@ultraforce/ts-general-lib/dist/data/UFDatabase.js";
 // endregion
 // region private constants
 const LOG_PREFIX = 'DATABASE';
@@ -19,13 +19,13 @@ const LOG_PREFIX = 'DATABASE';
  * {@link UFMysqlDatabase} implements `UFDatabase` for use with mysql using the promise version of the
  * mysql2 library. The class uses the pooling functionality to share connections.
  */
-export class UFMysqlDatabase extends UFDatabase {
+class UFMysqlDatabase extends UFDatabase {
     // endregion
     // region constructor
     /**
      * Constructs an instance of {@link UFMysqlDatabase}.
      *
-     * @param {UFLog} aLog
+     * @param {IUFLog} aLog
      *   Log to use
      */
     constructor(aLog) {
@@ -237,5 +237,8 @@ export class UFMysqlDatabase extends UFDatabase {
         });
     }
 }
+// endregion
+// region exports
+export { UFMysqlDatabase };
 // endregion
 //# sourceMappingURL=UFMysqlDatabase.js.map

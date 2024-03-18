@@ -1,9 +1,10 @@
 // region imports
 
 import {Connection, RowDataPacket, OkPacket, Pool, createPool} from 'mysql2/promise';
-import {UFLog} from "@ultraforce/ts-nodejs-lib/dist/log/UFLog";
-import {UFDatabase, IUFDatabase} from "@ultraforce/ts-general-lib/dist";
-import {IUFDynamicObject} from "@ultraforce/ts-general-lib/dist";
+import {IUFDatabase} from "@ultraforce/ts-general-lib/dist/data/IUFDatabase.js";
+import {UFDatabase} from "@ultraforce/ts-general-lib/dist/data/UFDatabase.js";
+import {IUFDynamicObject} from "@ultraforce/ts-general-lib/dist/types/IUFDynamicObject.js";
+import {IUFLog} from "@ultraforce/ts-nodejs-lib/dist/log/IUFLog.js";
 
 // endregion
 
@@ -19,7 +20,7 @@ const LOG_PREFIX: string = 'DATABASE';
  * {@link UFMysqlDatabase} implements `UFDatabase` for use with mysql using the promise version of the
  * mysql2 library. The class uses the pooling functionality to share connections.
  */
-export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
+class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
   // region private variables
 
   /**
@@ -69,7 +70,7 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
    *
    * @private
    */
-  private readonly m_log: UFLog;
+  private readonly m_log: IUFLog;
 
   // endregion
 
@@ -78,10 +79,10 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
   /**
    * Constructs an instance of {@link UFMysqlDatabase}.
    *
-   * @param {UFLog} aLog
+   * @param {IUFLog} aLog
    *   Log to use
    */
-  constructor(aLog: UFLog) {
+  constructor(aLog: IUFLog) {
     super();
     this.m_log = aLog;
   }
@@ -255,5 +256,11 @@ export class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
 
   // endregion
 }
+
+// endregion
+
+// region exports
+
+export {UFMysqlDatabase};
 
 // endregion
