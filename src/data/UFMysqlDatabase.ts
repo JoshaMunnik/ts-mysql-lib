@@ -1,7 +1,7 @@
 // region imports
 
 import {Connection, RowDataPacket, OkPacket, Pool, createPool} from 'mysql2/promise';
-import {UFLog} from "@ultraforce/ts-nodejs-lib/dist";
+import {UFLog} from "@ultraforce/ts-nodejs-lib/dist/log/UFLog";
 import {UFDatabase, IUFDatabase} from "@ultraforce/ts-general-lib/dist";
 import {IUFDynamicObject} from "@ultraforce/ts-general-lib/dist";
 
