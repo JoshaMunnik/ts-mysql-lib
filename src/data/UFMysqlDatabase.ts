@@ -1,6 +1,37 @@
+/**
+ * @version 1
+ * @author Josha Munnik
+ * @copyright Copyright (c) 2022 Ultra Force Development
+ * @license
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * <ul>
+ * <li>Redistributions of source code must retain the above copyright notice, this list of conditions and
+ *     the following disclaimer.</li>
+ * <li>The authors and companies name may not be used to endorse or promote products derived from this
+ *     software without specific prior written permission.</li>
+ * </ul>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS´´ AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
 // region imports
 
-import {Connection, RowDataPacket, OkPacket, Pool, createPool} from 'mysql2/promise';
+import {
+  Connection,
+  RowDataPacket,
+  Pool,
+  createPool,
+  ResultSetHeader,
+  QueryResult
+} from 'mysql2/promise';
 import {IUFDatabase} from "@ultraforce/ts-general-lib/dist/data/IUFDatabase.js";
 import {UFDatabase} from "@ultraforce/ts-general-lib/dist/data/UFDatabase.js";
 import {IUFDynamicObject} from "@ultraforce/ts-general-lib/dist/types/IUFDynamicObject.js";
@@ -128,7 +159,7 @@ class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
    * @inheritDoc
    */
   async insert(aSql: string, aParameterValues: IUFDynamicObject): Promise<number> {
-    const result = await this.execute('insert', aSql, aParameterValues) as OkPacket;
+    const result = await this.execute('insert', aSql, aParameterValues) as ResultSetHeader;
     return result.insertId;
   }
 
@@ -136,8 +167,8 @@ class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
    * @inheritDoc
    */
   async update(aSql: string, aParameterValues?: IUFDynamicObject): Promise<number> {
-    const result = await this.execute('update', aSql, aParameterValues) as OkPacket;
-    return result.changedRows;
+    const result = await this.execute('update', aSql, aParameterValues) as ResultSetHeader;
+    return result.affectedRows;
   }
 
   /**
@@ -215,18 +246,19 @@ class UFMysqlDatabase extends UFDatabase<RowDataPacket> {
   /**
    * Execute a sql.
    *
-   * @param {string }aDescription
+   * @param aDescription
    *   Description (used when an error occurs)
-   * @param {string} aSql
+   * @param aSql
    *   Sql statement to perform
-   * @param {*[]} aParameterValues
+   * @param aParameterValues
    *   Values to use in case the statement contains parameters
    *
-   * @return {RowDataPacket[]|OkPacket} result from sql statement
+   * @return result from sql statement
    *
    * @throws error
    */
-  private async execute(aDescription: string, aSql: string, aParameterValues?: IUFDynamicObject) {
+  private async execute(aDescription: string, aSql: string, aParameterValues?: IUFDynamicObject)
+  : Promise<QueryResult | undefined>{
     if ((this.m_connection == null) && (this.m_pool == null)) {
       throw new Error('There is no connection to the database.')
     }
